@@ -1,0 +1,52 @@
+[versions]
+# region Base Java & Kotlin Packages
+kotlinxCoroutinesCore = "1.8.0-RC2"
+koinBom = "3.6.0-wasm-alpha2"
+# endregion
+
+# region Web Packages
+ktor = "2.3.12"
+# endregion
+
+# region Test Packages
+
+# endregion
+
+# region Plugins
+kotlinJvm = "1.9.0"
+# endregion
+
+
+
+[libraries]
+# region Base Java & Kotlin Packages
+jetbrains-kotlinx-coroutines-core = {group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinxCoroutinesCore"}
+koin-bom = {group = "io.insert-koin", name = "koin-bom", version.ref = "koinBom"}
+koin-core = {group = "io.insert-koin", name = "koin-core"}
+koin-core-coroutines = {group = "io.insert-koin", name = "koin-core-coroutines"}
+# endregion
+
+# region Web Packages
+ktor-client-core = {group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
+ktor-client-cio = {group = "io.ktor", name = "ktor-client-cio", version.ref = "ktor" }
+ktor-client-content-negotiation = {group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor"}
+ktor-serialization-gson = {group = "io.ktor", name = "ktor-serialization-gson", version.ref = "ktor"}
+# endregion
+
+# region Google Packages
+
+# endregion
+
+# region UI Packages
+
+# endregion
+
+# region Test Packages
+
+# endregion
+
+
+
+[plugins]
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlinJvm" }
+
