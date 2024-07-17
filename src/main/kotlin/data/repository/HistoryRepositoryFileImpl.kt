@@ -1,6 +1,7 @@
 package data.repository
 
 import data.source.local.FileLocalDataSource
+import domain.model.ResultWrapper
 import domain.model.WeatherInfo
 import domain.repository.HistoryRepository
 
@@ -17,13 +18,12 @@ class HistoryRepositoryFileImpl(private val fileLocalDataSource: FileLocalDataSo
         }
     }
 
-    override suspend fun getSearchHistory(): List<WeatherInfo> {
+    override suspend fun getSearchHistory(): ResultWrapper<List<WeatherInfo>, Throwable> {
         return try {
-            fileLocalDataSource.readJsonArrayFromFile("", "history.json")
+            ResultWrapper.Success(fileLocalDataSource.readJsonArrayFromFile("", "history.json"))
         }
-        catch (e: Exception) {
-            println(e.message)
-            mutableListOf()
+        catch (t: Throwable) {
+            ResultWrapper.CancelOrFailure(t.localizedMessage, t)
         }
     }
 }
