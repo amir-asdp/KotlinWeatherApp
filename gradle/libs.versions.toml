@@ -24,6 +24,7 @@ jetbrains-kotlinx-coroutines-core = {group = "org.jetbrains.kotlinx", name = "ko
 koin-bom = {group = "io.insert-koin", name = "koin-bom", version.ref = "koinBom"}
 koin-core = {group = "io.insert-koin", name = "koin-core"}
 koin-core-coroutines = {group = "io.insert-koin", name = "koin-core-coroutines"}
+koin-ktor = {group = "io.insert-koin", name = "koin-ktor"}
 # endregion
 
 # region Web Packages
