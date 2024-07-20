@@ -2,6 +2,7 @@
 # region Base Java & Kotlin Packages
 kotlinxCoroutinesCore = "1.8.0-RC2"
 koinBom = "3.6.0-wasm-alpha2"
+qosLogbackClassic = "1.5.6"
 # endregion
 
 # region Web Packages
@@ -25,6 +26,7 @@ koin-bom = {group = "io.insert-koin", name = "koin-bom", version.ref = "koinBom"
 koin-core = {group = "io.insert-koin", name = "koin-core"}
 koin-core-coroutines = {group = "io.insert-koin", name = "koin-core-coroutines"}
 koin-ktor = {group = "io.insert-koin", name = "koin-ktor"}
+qos-logback-classic = {group = "ch.qos.logback", name = "logback-classic", version.ref = "qosLogbackClassic"}
 # endregion
 
 # region Web Packages

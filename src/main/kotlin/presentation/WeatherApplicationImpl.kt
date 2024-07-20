@@ -1,16 +1,16 @@
 package presentation
 
 import di.appModule
-import domain.application.WeatherApplication
+import domain.contract.application.WeatherApplication
+import domain.contract.constant.Constants
 import domain.model.ResultWrapper
 import domain.model.WeatherInfo
-import domain.repository.HistoryRepository
-import domain.repository.WeatherRepository
+import domain.contract.repository.HistoryRepository
+import domain.contract.repository.WeatherRepository
 import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.update
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.context.startKoin
@@ -19,13 +19,13 @@ class WeatherApplicationImpl private constructor(): WeatherApplication, KoinComp
 
     private val weatherRepository: WeatherRepository by inject()
     private val historyRepository: HistoryRepository by inject()
-    val _uiState = MutableStateFlow<UiState>(UiState.IsLoading)
-    val uiState: StateFlow<UiState> = _uiState
+    private val _uiStateFlow = MutableStateFlow<UiState>(UiState.EnterCommand)
+    val uiStateFlow: StateFlow<UiState> = _uiStateFlow
 
     init {
         startKoin { modules(appModule) }
+        _uiStateFlow.update { UiState.EnterCommand }
     }
-
     companion object {
         @Volatile private var instance: WeatherApplicationImpl? = null
 
@@ -36,119 +36,95 @@ class WeatherApplicationImpl private constructor(): WeatherApplication, KoinComp
         }
     }
 
-    override fun executeCommand(command: String) {
-
-        CoroutineScope(Dispatchers.Main).launch {
-            uiState.collect{ state ->
-                when(state){
-                    is UiState.IsLoading -> {
-                        printLoadingAnimation(uiState)
-                    }
-                    is UiState.SuccessApi -> {
-                        println(state.data)
-                    }
-                    is UiState.SuccessFile -> {
-
-                    }
-                    is UiState.Error -> {
-                        println(state.message)
-                        println("----------------------------------")
-                    }
-                }
-            }
-        }
 
 
-        val commandSegments = command.split(" ")
+    override fun executeCommand(command: String, coroutineScope: CoroutineScope) {
+        coroutineScope.launch {
+            val commandSegments = command.split(" ")
 
-        if (commandSegments.size in 1..2) {
-            when(commandSegments[0]){
-                "getWeather" -> {
-                    CoroutineScope(Dispatchers.IO).launch{
-                        _uiState.emit(UiState.IsLoading)
-                        val result: ResultWrapper<WeatherInfo, Throwable>
+            if (commandSegments.size in 1..2) {
+                when(commandSegments[0]){
+                    Constants.Application.COMMAND_TYPE_GET_WEATHER -> {
+                        _uiStateFlow.update { (UiState.IsLoading) }
+
+                        val getWeatherResult: ResultWrapper<WeatherInfo, Throwable>
+
                         if (commandSegments.size == 1) {
-                            result = weatherRepository.getWeatherByIp()
+                            getWeatherResult = weatherRepository.getWeatherByIp()
 
                         }
                         else if (commandSegments[1].split(",").size == 2) {
-                            val latlong = commandSegments[1].split(",")
-                            result = weatherRepository.getWeatherByLatLong(latlong[0].toFloat(), latlong[1].toFloat())
+                            val coordinates = commandSegments[1].split(",")
+                            getWeatherResult = weatherRepository.getWeatherByLatLong(coordinates[0].toFloat(), coordinates[1].toFloat())
                         }
                         else {
-                            result = weatherRepository.getWeatherByCity(commandSegments[1])
+                            getWeatherResult = weatherRepository.getWeatherByCity(commandSegments[1])
                         }
-                        when(result){
+
+                        when(getWeatherResult){
                             is ResultWrapper.Success -> {
-                                historyRepository.saveSearch(result.resultValue)
-                                launch(Dispatchers.Main) {
-                                    _uiState.emit(UiState.SuccessApi(result.resultValue))
+                                _uiStateFlow.update { (UiState.SuccessGetWeather(getWeatherResult.resultValue)) }
+                                when(val saveSearchResult = historyRepository.saveSearch(getWeatherResult.resultValue)){
+                                    is ResultWrapper.Success -> {}
+                                    is ResultWrapper.CancelOrFailure -> {
+                                        _uiStateFlow.update { (UiState.Error(saveSearchResult.resultValue.localizedMessage)) }
+                                    }
                                 }
                             }
                             is ResultWrapper.CancelOrFailure -> {
-                                launch(Dispatchers.Main) {
-                                    _uiState.emit(UiState.Error(result.resultValue.localizedMessage))
-                                }
+                                _uiStateFlow.update { (UiState.Error(getWeatherResult.resultValue.localizedMessage)) }
                             }
                         }
                     }
-                }
 
-                "history" -> {
-                    CoroutineScope(Dispatchers.IO).launch {
-                        _uiState.emit(UiState.IsLoading)
-                        val result = historyRepository.getSearchHistory()
-                        when(result){
+                    Constants.Application.COMMAND_TYPE_HISTORY -> {
+                        _uiStateFlow.update { (UiState.IsLoading) }
+
+                        when(val searchHistoryResult = historyRepository.getSearchHistory()){
                             is ResultWrapper.Success -> {
-                                launch(Dispatchers.Main) {
-                                _uiState.emit(UiState.SuccessFile(result.resultValue))
-                            }}
+                                _uiStateFlow.update { (UiState.SuccessSearchHistory(searchHistoryResult.resultValue)) }
+                            }
                             is ResultWrapper.CancelOrFailure -> {
-                                launch(Dispatchers.Main) {
-                                _uiState.emit(UiState.Error(result.resultValue.localizedMessage))
-                            }}
+                                _uiStateFlow.update { (UiState.Error(searchHistoryResult.resultValue.localizedMessage)) }
+                            }
                         }
                     }
-                }
 
-                else -> {
-                    printWrongCommandRational()
-                }
-            }
-        }
-        else {
-            printWrongCommandRational()
-        }
-
-    }
-
-    fun printWrongCommandRational(){
-        println("\nWrong Command.")
-        println("Guide:")
-        println("getWeather <none> or <city name> or <lat,long>   ===>   Shows current weather of a location.")
-        println("history   ===>   Shows the search history.\n")
-    }
-
-    suspend fun printLoadingAnimation(uiState: StateFlow<UiState>){
-        println("Loading ")
-        var isLoading = false
-        uiState.collect { state ->
-            when(state){
-                is UiState.IsLoading -> {
-                    isLoading = true
-                    while (isLoading){
-                        for (i in 1..3){
-                            print(".")
-                            delay(1000)
-                        }
-                        print("\b".repeat(3))
+                    else -> {
+                        _uiStateFlow.update { (UiState.Error(Constants.Application.RATIONAL_WRONG_COMMAND)) }
                     }
                 }
-                is UiState.SuccessApi -> {isLoading = false}
-                is UiState.SuccessFile -> {isLoading = false}
-                is UiState.Error -> {isLoading = false}
+            }
+            else {
+                _uiStateFlow.update { (UiState.Error(Constants.Application.RATIONAL_WRONG_COMMAND)) }
+            }
+        }.invokeOnCompletion {
+            coroutineScope.launch {
+                _uiStateFlow.update { (UiState.EnterCommand) }
             }
         }
+    }
+
+
+
+    @OptIn(InternalCoroutinesApi::class)
+    fun printLoadingAnimation(coroutineScope: CoroutineScope): Job {
+        val job = coroutineScope.launch {
+            print("Loading ")
+            while (true) {
+                repeat(5){
+                    print(".")
+                    delay(200)
+                }
+                print("\b".repeat(5))
+            }
+        }
+
+        job.invokeOnCompletion(onCancelling = true, invokeImmediately = true) {
+            println()
+        }
+
+        return job
     }
 
 }

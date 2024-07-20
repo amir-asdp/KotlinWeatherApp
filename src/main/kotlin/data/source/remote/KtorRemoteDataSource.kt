@@ -2,6 +2,7 @@ package data.source.remote
 
 import data.model.IpResponse
 import data.model.WeatherResponse
+import domain.contract.constant.Constants
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
@@ -9,16 +10,16 @@ import io.ktor.client.request.*
 class KtorRemoteDataSource(private val client: HttpClient) {
 
     suspend fun getCurrentWeather(query: String): WeatherResponse {
-        return client.get("https://api.weatherapi.com/v1/current.json") {
+        return client.get(Constants.Api.API_BASE_URL_CURRENT_WEATHER) {
             url {
-                parameters.append("key", "c75e8d36089c46dcaba91026241507")
+                parameters.append("key", Constants.Api.API_KEY_WEATHER)
                 parameters.append("q", query)
             }
         }.body()
     }
 
     suspend fun getGlobalIp(): IpResponse {
-        return client.get("https://api.ipify.org") {
+        return client.get(Constants.Api.API_BASE_URL_IPFY) {
             url {
                 parameters.append("format", "json")
             }

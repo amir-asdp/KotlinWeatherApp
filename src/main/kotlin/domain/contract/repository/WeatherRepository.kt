@@ -1,4 +1,4 @@
-package domain.repository
+package domain.contract.repository
 
 import domain.model.ResultWrapper
 import domain.model.WeatherInfo
