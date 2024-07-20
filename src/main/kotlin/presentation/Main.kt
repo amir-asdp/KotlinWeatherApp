@@ -1,11 +1,9 @@
-package org.example.presentation
+package presentation
 
 import domain.contract.constant.Constants
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import presentation.UiState
-import presentation.WeatherApplicationImpl
 
 
 fun main() = runBlocking<Unit> {
